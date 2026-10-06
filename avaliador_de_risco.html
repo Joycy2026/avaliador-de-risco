@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Avaliador de Risco</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#f4f6f8;color:#1f2937;margin:0}
+.wrap{max-width:1050px;margin:auto;padding:24px 18px 45px}
+.card{background:#fff;border-radius:14px;padding:22px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+h1{margin:0 0 6px;font-size:27px}
+h2{font-size:19px;margin:0 0 18px}
+.sub{color:#667085;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+input,select{width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;font-size:15px}
+.note{font-size:11px;color:#667085;margin-top:4px}
+.diagnosis{padding:20px;text-align:center;border:2px solid #d0d5dd;border-radius:12px;background:#f9fafb;margin-bottom:18px}
+.diagnosis.low{background:#ecfdf3;border-color:#12b76a}
+.diagnosis.medium{background:#fffaeb;border-color:#f79009}
+.diagnosis.high{background:#fef3f2;border-color:#f04438}
+.dtitle{font-size:12px;color:#667085;font-weight:700;letter-spacing:.04em}
+.univ{font-size:19px;font-weight:700;margin-top:7px}
+.program{font-size:15px;margin-top:3px;color:#475467}
+.risk{font-size:29px;font-weight:800;margin-top:12px}
+.reason{font-size:13px;margin-top:8px;line-height:1.4}
+button{border:0;border-radius:8px;padding:11px 16px;margin-top:16px;margin-right:7px;font-weight:700;cursor:pointer;background:#1d2939;color:#fff}
+button.alt{background:#e4e7ec;color:#344054}
+.rules{font-size:10px;color:#667085;line-height:1.3}
+.rules h3{font-size:11px;color:#475467;margin:12px 0 5px}
+.rules div{border:1px solid #eaecf0;border-radius:6px;padding:5px 7px;margin-bottom:4px}
+.saved{font-size:13px;line-height:1.5}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Avaliador de Risco</h1>
+<div class="sub">Classificação baseada exclusivamente na matriz fornecida.</div>
+
+<div id="diagnosis" class="diagnosis">
+  <div class="dtitle">DIAGNÓSTICO</div>
+  <div id="dUniv" class="univ"></div>
+  <div id="dProgram" class="program"></div>
+  <div id="dRisk" class="risk">Preencha os critérios</div>
+  <div id="dReason" class="reason"></div>
+</div>
+
+<div class="card">
+<h2>Dados da aplicação</h2>
+<div class="grid">
+  <div>
+    <label>Nome da universidade</label>
+    <input id="univ" type="text">
+  </div>
+  <div>
+    <label>Nome do programa</label>
+    <input id="program" type="text">
+  </div>
+  <div>
+    <label>Professor com quem conversei</label>
+    <input id="professor" type="text">
+  </div>
+  <div>
+    <label>A universidade é TOP 25?</label>
+    <select id="top25">
+      <option value="">Selecione...</option>
+      <option value="sim">SIM — TOP 25</option>
+      <option value="nao">NÃO — fora do TOP 25</option>
+    </select>
+  </div>
+  <div>
+    <label>Recomendações adicionais</label>
+    <select id="recommendation">
+      <option value="">Selecione...</option>
+      <option value="inside">Dentro das recomendações</option>
+      <option value="none">Sem recomendações</option>
+      <option value="outside">Fora das recomendações</option>
+    </select>
+    <div class="note">“Sem recomendações” = “Dentro das recomendações”. “Fora das recomendações” + “Fora da estatística” = alto risco.</div>
+  </div>
+  <div>
+    <label>Estatística do programa</label>
+    <select id="statistics">
+      <option value="">Selecione...</option>
+      <option value="inside">Dentro da estatística</option>
+      <option value="outside">Fora da estatística</option>
+      <option value="nodata">Sem dados</option>
+    </select>
+  </div>
+  <div>
+    <label>Feedback do professor</label>
+    <select id="feedback">
+      <option value="">Selecione...</option>
+      <option value="excellent">Excelente</option>
+      <option value="accepted">Aceite</option>
+      <option value="great">Ótimo</option>
+      <option value="good">Bom</option>
+      <option value="neutral">Neutro</option>
+    </select>
+  </div>
+</div>
+<button id="save">Salvar aplicação</button>
+<button id="clear" class="alt">Limpar</button>
+</div>
+
+<div class="card">
+<h2>Regras da matriz</h2>
+<div class="rules">
+<h3>TOP 25</h3>
+<div>🔴 Alto — Dentro das recomendações + dentro da estatística/sem dados + TOP 25 + Ótimo/Bom/Neutro.</div>
+<div>🟡 Médio — Dentro das recomendações + dentro da estatística/sem dados + TOP 25 + Excelente.</div>
+<div>🟢 Baixo — Dentro das recomendações + dentro da estatística/sem dados + TOP 25 + Aceite.</div>
+<div>🔴 Alto — Fora das recomendações (tabulado como sem dados) OU fora da estatística + TOP 25 + Excelente/Aceite.</div>
+<h3>FORA DO TOP 25</h3>
+<div>🔴 Alto — Fora das recomendações (tabulado como sem dados) OU fora da estatística + FORA TOP 25 + Neutro.</div>
+<div>🔴 Alto — Programa sem estatística E sem recomendação + FORA TOP 25 + Neutro. <em>Essa regra deixa de se aplicar quando “sem recomendações” é considerado “dentro”.</em></div>
+<div>🟡 Médio — Fora das recomendações (tabulado como sem dados) OU fora da estatística/sem dados + FORA TOP 25 + Bom/Ótimo.</div>
+<div>🟢 Baixo — Fora ou dentro das recomendações + fora ou dentro da estatística/sem dados + FORA TOP 25 + Excelente/Aceite.</div>
+<div>🟢 Baixo — Dentro das recomendações + dentro da estatística + FORA TOP 25 + Neutro/Bom/Ótimo.</div>
+</div>
+</div>
+
+<div class="card">
+<h2>Última aplicação salva</h2>
+<div id="saved" class="saved">Nenhuma aplicação salva.</div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function normalizedRecommendation(){
+  // Tabulation rule:
+  // "Sem recomendações" = "Dentro das recomendações".
+  const value = $('recommendation').value;
+  return value === 'none' ? 'inside' : value;
+}
+
+function evaluate(){
+  const top = $('top25').value;
+  const rec = normalizedRecommendation();
+  const stat = $('statistics').value;
+  const fb = $('feedback').value;
+
+  $('dUniv').textContent = $('univ').value.trim();
+  $('dProgram').textContent = $('program').value.trim();
+
+  $('diagnosis').className = 'diagnosis';
+  $('dRisk').textContent = 'Preencha os critérios';
+  $('dReason').textContent = '';
+
+  if(!top || !rec || !stat || !fb) return null;
+
+  let risk = '';
+  let reason = '';
+
+  /*
+    REGRA DEFINIDA PELA USUÁRIA:
+    - Sem recomendação = Dentro das recomendações.
+    - Fora da recomendação + Fora da estatística = Alto risco.
+  */
+
+  // Fora da recomendação + fora da estatística = ALTO,
+  // independentemente do TOP 25/feedback.
+  if(rec === 'outside' && stat === 'outside'){
+    risk = 'high';
+    reason = 'Fora das recomendações + fora da estatística = alto risco.';
+  }
+
+  // Se ainda não houver diagnóstico, aplicar a matriz original.
+  if(!risk && top === 'sim'){
+    if(rec === 'inside' && (stat === 'inside' || stat === 'nodata')){
+      if(fb === 'accepted'){
+        risk='low';
+        reason='Dentro das recomendações + dentro da estatística/sem dados + TOP 25 + feedback aceite.';
+      } else if(fb === 'excellent'){
+        risk='medium';
+        reason='Dentro das recomendações + dentro da estatística/sem dados + TOP 25 + feedback excelente.';
+      } else if(['great','good','neutral'].includes(fb)){
+        risk='high';
+        reason='Dentro das recomendações + dentro da estatística/sem dados + TOP 25 + feedback ótimo/bom/neutro.';
+      }
+    }
+
+    if(!risk && (rec === 'outside' || stat === 'outside') &&
+       ['excellent','accepted'].includes(fb)){
+      risk='high';
+      reason='Fora das recomendações ou fora da estatística + TOP 25 + feedback excelente/aceite.';
+    }
+  }
+
+  if(!risk && top === 'nao'){
+    if((rec === 'outside' || stat === 'outside') && fb === 'neutral'){
+      risk='high';
+      reason='Fora das recomendações ou fora da estatística + FORA TOP 25 + feedback neutro.';
+    } else if((rec === 'outside' || stat === 'outside' || stat === 'nodata') &&
+              ['good','great'].includes(fb)){
+      risk='medium';
+      reason='Fora das recomendações ou fora da estatística/sem dados + FORA TOP 25 + feedback bom/ótimo.';
+    } else if(rec === 'inside' && stat === 'inside' &&
+              ['neutral','good','great'].includes(fb)){
+      risk='low';
+      reason='Dentro das recomendações + dentro da estatística + FORA TOP 25 + feedback neutro/bom/ótimo.';
+    } else if(['inside','outside'].includes(rec) &&
+              ['inside','outside','nodata'].includes(stat) &&
+              ['excellent','accepted'].includes(fb)){
+      risk='low';
+      reason='Fora ou dentro das recomendações + fora ou dentro da estatística/sem dados + FORA TOP 25 + feedback excelente/aceite.';
+    }
+  }
+
+  if(!risk){
+    $('dRisk').textContent='Combinação não prevista';
+    $('dReason').textContent='Essa combinação não está contemplada pelas regras da matriz.';
+    return {risk:null,reason:''};
+  }
+
+  const labels={
+    low:'🟢 BAIXO RISCO',
+    medium:'🟡 MÉDIO RISCO',
+    high:'🔴 ALTO RISCO'
+  };
+  $('diagnosis').className='diagnosis '+risk;
+  $('dRisk').textContent=labels[risk];
+  $('dReason').textContent=reason;
+  return {risk,reason};
+}
+['univ','program','professor','top25','recommendation','statistics','feedback']
+.forEach(id=>{
+  $(id).addEventListener('input',evaluate);
+  $(id).addEventListener('change',evaluate);
+});
+
+$('save').addEventListener('click',()=>{
+  const result=evaluate();
+  if(!result || !result.risk){
+    $('saved').textContent='Preencha uma combinação válida da matriz antes de salvar.';
+    return;
+  }
+  const data={
+    university:$('univ').value.trim(),
+    program:$('program').value.trim(),
+    professor:$('professor').value.trim(),
+    top25:$('top25').selectedOptions[0].text,
+    recommendation:$('recommendation').selectedOptions[0].text,
+    statistics:$('statistics').selectedOptions[0].text,
+    feedback:$('feedback').selectedOptions[0].text,
+    risk:$('dRisk').textContent,
+    reason:result.reason
+  };
+  localStorage.setItem('phdRiskApplication',JSON.stringify(data));
+  showSaved(data);
+});
+
+function showSaved(d){
+  $('saved').innerHTML=
+    '<strong>'+d.risk+'</strong><br>'+
+    '<b>Universidade:</b> '+(d.university||'Não informado')+'<br>'+
+    '<b>Programa:</b> '+(d.program||'Não informado')+'<br>'+
+    '<b>Professor:</b> '+(d.professor||'Não informado')+'<br>'+
+    d.top25+' | '+d.recommendation+' | '+d.statistics+' | '+d.feedback+
+    '<br>'+d.reason;
+}
+
+$('clear').addEventListener('click',()=>{
+  ['univ','program','professor','top25','recommendation','statistics','feedback']
+  .forEach(id=>$(id).value='');
+  $('diagnosis').className='diagnosis';
+  $('dUniv').textContent='';
+  $('dProgram').textContent='';
+  $('dRisk').textContent='Preencha os critérios';
+  $('dReason').textContent='';
+});
+
+try{
+  const saved=JSON.parse(localStorage.getItem('phdRiskApplication'));
+  if(saved) showSaved(saved);
+}catch(e){}
+</script>
+</body>
+</html>
